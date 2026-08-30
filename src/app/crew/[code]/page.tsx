@@ -1,12 +1,24 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getStore, BISCUIT_BUDGET } from "@/lib/store";
 import { getSessionMember } from "@/lib/session";
 import { joinCrewAction } from "@/lib/actions";
 import { DAY_LABEL, Day } from "@/lib/lineup";
 import { CopyButton } from "@/components/CopyButton";
+import { ShareCrewLink } from "@/components/ShareCrewLink";
 import { MyPlanEditor } from "@/components/MyPlanEditor";
 import { PrefsFields } from "@/components/PrefsFields";
+
+/** Built from the actual incoming request, not an env var — so it's always
+ * correct for wherever this happens to be running (localhost, a Vercel
+ * preview URL, or a future custom domain) with zero config. */
+async function currentOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
 
 const DAYS: Day[] = ["saturday", "sunday"];
 
@@ -50,8 +62,9 @@ export default async function CrewPage({
     );
   }
 
-  const board = await store.getStatusBoard(crew.id);
+  const [board, origin] = await Promise.all([store.getStatusBoard(crew.id), currentOrigin()]);
   const mine = board.find((b) => b.memberId === member.id);
+  const joinUrl = `${origin}/crew/${crew.code}`;
 
   return (
     <main className="flex flex-1 flex-col gap-6 pt-4">
@@ -64,6 +77,9 @@ export default async function CrewPage({
             {crew.code}
           </span>
           <CopyButton value={crew.code} label="Copy code" />
+        </div>
+        <div className="flex justify-center">
+          <ShareCrewLink crewName={crew.name} joinUrl={joinUrl} />
         </div>
         <div className="flex justify-center pt-1">
           <MyPlanEditor
