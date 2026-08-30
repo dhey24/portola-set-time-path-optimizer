@@ -70,9 +70,12 @@ export function ScoreGrid({ scores }: { scores: SetScore[] }) {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted">Colored by crew interest. Faded = nobody backed it.</p>
-        <div className="flex items-center gap-1.5 shrink-0">
+      <p className="text-xs text-muted">Colored by crew interest. Faded = nobody backed it.</p>
+
+      {/* One sticky block for paging arrows + density control + stage names,
+          so they all stay reachable together without scrolling back up. */}
+      <div className="sticky z-20 overflow-hidden rounded-t-xl bg-background" style={{ top: 0 }}>
+        <div className="flex items-center justify-end gap-1.5 px-1.5 py-1.5">
           <button
             type="button"
             onClick={() => setRawPageStart(Math.max(0, pageStart - 1))}
@@ -113,9 +116,6 @@ export function ScoreGrid({ scores }: { scores: SetScore[] }) {
             ›
           </button>
         </div>
-      </div>
-
-      <div className="sticky z-20 overflow-hidden rounded-t-xl" style={{ top: 0 }}>
         <div className="flex">
           <div className="shrink-0 bg-card" style={{ width: AXIS_WIDTH, height: HEADER_HEIGHT }} />
           {visibleStages.map((s) => (

@@ -83,11 +83,19 @@ export function LineupGrid({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted">
-          Tap a set to weight it. Side-by-side blocks clash.
-        </p>
-        <div className="flex items-center gap-1.5 shrink-0">
+      <p className="text-xs text-muted">
+        Tap a set to weight it. Side-by-side blocks clash.
+      </p>
+
+      {/* Everything that needs to stay reachable while scrolling down the
+          schedule — paging arrows, density control, and the stage-name row —
+          lives in ONE sticky block so it all stays pinned together right
+          below whatever's already stuck above it (the biscuits-spent bar). */}
+      <div
+        className="sticky z-20 overflow-hidden rounded-t-xl bg-background"
+        style={{ top: stickyTop }}
+      >
+        <div className="flex items-center justify-end gap-1.5 px-1.5 py-1.5">
           <button
             type="button"
             onClick={() => setRawPageStart(Math.max(0, pageStart - 1))}
@@ -128,14 +136,6 @@ export function LineupGrid({
             ›
           </button>
         </div>
-      </div>
-
-      {/* Sticky, page-relative header row. No horizontal scroll here at all —
-          it just re-renders whichever stages are currently in view. */}
-      <div
-        className="sticky z-20 overflow-hidden rounded-t-xl"
-        style={{ top: stickyTop }}
-      >
         <div className="flex">
           <div className="shrink-0 bg-card" style={{ width: AXIS_WIDTH, height: HEADER_HEIGHT }} />
           {visibleStages.map((s) => (
