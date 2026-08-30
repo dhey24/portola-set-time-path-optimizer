@@ -1,69 +1,86 @@
-import Image from "next/image";
+import { createCrewAction, joinCrewAction } from "@/lib/actions";
+import { PrefsFields } from "@/components/PrefsFields";
+import { Sparkle } from "@/components/Sparkle";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="flex flex-1 flex-col gap-8 pt-6">
+      <header className="relative text-center space-y-3 px-2">
+        <Sparkle className="absolute -top-1 left-2 h-4 w-4 text-accent-2" />
+        <Sparkle
+          className="absolute top-6 right-4 h-3 w-3 text-accent"
+          style={{ animationDelay: "0.8s" }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <Sparkle
+          className="absolute bottom-0 left-8 h-3 w-3 text-accent"
+          style={{ animationDelay: "1.4s" }}
+        />
+        <p className="stage-oval inline-block text-accent font-semibold tracking-wide text-xs px-4 py-1.5">
+          🪩 PORTOLA 2026 · PIER 80 · SEP 26–27
+        </p>
+        <h1 className="poster-heading text-4xl sm:text-5xl">Disco Biscuits</h1>
+        <p className="text-muted text-sm max-w-sm mx-auto">
+          Blindly spend 100 biscuits on the sets you&rsquo;re most feral about. We&rsquo;ll
+          turn your crew&rsquo;s chaos into a few optimal paths between stages. No
+          brutal efficiency, just vibes with a schedule.
+        </p>
+      </header>
+
+      <section className="bg-card rounded-2xl p-5 space-y-3 shadow-lg shadow-black/20">
+        <h2 className="poster-heading text-xl text-accent">Start a crew</h2>
+        <p className="text-sm text-muted">
+          Get a shareable code for your friends. Nobody sees anyone else&rsquo;s
+          picks until they&rsquo;ve locked in their own.
+        </p>
+        <form action={createCrewAction} className="space-y-3">
+          <input
+            name="crewName"
+            required
+            placeholder="Crew name (e.g. Feral Ferrets)"
+            className="w-full rounded-xl bg-background/60 border border-white/10 px-4 py-3 text-base placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+          />
+          <input
+            name="displayName"
+            required
+            placeholder="Your name"
+            className="w-full rounded-xl bg-background/60 border border-white/10 px-4 py-3 text-base placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+          />
+          <PrefsFields />
+          <button
+            type="submit"
+            className="w-full rounded-xl bg-accent text-background font-bold py-3 text-base hover:brightness-95 active:scale-[0.99] transition"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Create crew
+          </button>
+        </form>
+      </section>
+
+      <section className="bg-card rounded-2xl p-5 space-y-3 shadow-lg shadow-black/20">
+        <h2 className="poster-heading text-xl text-accent-2">Join a crew</h2>
+        <p className="text-sm text-muted">Got a code from a friend? Drop in here.</p>
+        <form action={joinCrewAction} className="space-y-3">
+          <input
+            name="code"
+            required
+            maxLength={6}
+            placeholder="Crew code (e.g. F3RAL2)"
+            className="w-full rounded-xl bg-background/60 border border-white/10 px-4 py-3 text-base uppercase tracking-widest placeholder:normal-case placeholder:tracking-normal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent-2"
+          />
+          <input
+            name="displayName"
+            required
+            placeholder="Your name"
+            className="w-full rounded-xl bg-background/60 border border-white/10 px-4 py-3 text-base placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent-2"
+          />
+          <PrefsFields />
+          <button
+            type="submit"
+            className="w-full rounded-xl bg-accent-2 text-background font-bold py-3 text-base hover:brightness-95 active:scale-[0.99] transition"
           >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            Join crew
+          </button>
+        </form>
+      </section>
+    </main>
   );
 }
