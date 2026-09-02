@@ -57,7 +57,7 @@ export default async function ResultsPage({
   const pace = attendees.length > 0 && attendees.every((b) => b.ticketType === "VIP")
     ? "VIP"
     : "GA";
-  const { paths, wildcards } = buildPaths(day, allocations, pace);
+  const { paths, wildcards, closeCalls } = buildPaths(day, allocations, pace);
   const rawScores = [...scoreSets(day, allocations)].sort((a, b) => b.hype - a.hype);
 
   return (
@@ -96,6 +96,32 @@ export default async function ResultsPage({
           />
         ))}
       </section>
+
+      {closeCalls.length > 0 && (
+        <section className="bg-card/60 rounded-2xl p-4 space-y-2">
+          <h2 className="poster-heading text-sm text-muted">Close calls</h2>
+          <p className="text-xs text-muted">
+            The crew backed these, but the clock said no — shown with what they lost to.
+          </p>
+          <div className="space-y-2">
+            {closeCalls.map((c) => (
+              <div key={c.score.set.id} className="text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold truncate">{c.score.set.artist}</span>
+                  <span className="text-xs text-muted shrink-0">
+                    {Math.round(c.score.hype)}hp · {c.score.backers}{" "}
+                    {c.score.backers === 1 ? "backer" : "backers"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted">
+                  Conflicts with{" "}
+                  {c.conflictsWith.map((s) => s.artist).join(" + ")}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {wildcards.length > 0 && (
         <section className="bg-card/60 rounded-2xl p-4 space-y-2">

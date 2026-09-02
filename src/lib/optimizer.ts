@@ -48,13 +48,25 @@ export interface PathResult {
   setsCount: number;
 }
 
-type Weight = [number, number]; // [primary, secondary] compared lexicographically
+/** A set the crew was into that didn't make the cut — and which chosen
+ * stop(s) it lost to. */
+export interface CloseCall {
+  score: SetScore;
+  conflictsWith: SetSlot[];
+}
+
+// [primary, secondary, sameStageStreak] compared lexicographically. The
+// third slot never outranks real score — it only breaks EXACT ties between
+// two otherwise-equal paths, preferring the one that hops stages less.
+type Weight = [number, number, number];
 
 function cmp(a: Weight, b: Weight): number {
-  return a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1];
+  if (a[0] !== b[0]) return a[0] - b[0];
+  if (a[1] !== b[1]) return a[1] - b[1];
+  return a[2] - b[2];
 }
 function add(a: Weight, b: Weight): Weight {
-  return [a[0] + b[0], a[1] + b[1]];
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
 
 /**
@@ -64,22 +76,24 @@ function add(a: Weight, b: Weight): Weight {
 function bestPath(
   sets: SetSlot[],
   scoreOf: Map<string, SetScore>,
-  weightOf: (s: SetScore) => Weight,
+  weightOf: (s: SetScore) => [number, number],
   ticketType: TicketType
 ): { stops: PathStop[]; total: Weight } {
   const nodes = [...sets].sort((a, b) => a.startMin - b.startMin);
   const n = nodes.length;
-  const dp: Weight[] = new Array(n).fill(null).map(() => [0, 0] as Weight);
+  const dp: Weight[] = new Array(n).fill(null).map(() => [0, 0, 0] as Weight);
   const parent: number[] = new Array(n).fill(-1);
 
   for (let i = 0; i < n; i++) {
-    const w = weightOf(scoreOf.get(nodes[i].id)!);
+    const [primary, secondary] = weightOf(scoreOf.get(nodes[i].id)!);
+    const w: Weight = [primary, secondary, 0];
     dp[i] = w;
     parent[i] = -1;
     for (let j = 0; j < i; j++) {
       const travel = walkMinutes(nodes[j].stage, nodes[i].stage, ticketType);
       if (nodes[j].endMin + travel <= nodes[i].startMin) {
-        const candidate = add(dp[j], w);
+        const sameStage = nodes[j].stage === nodes[i].stage ? 1 : 0;
+        const candidate = add(dp[j], [primary, secondary, sameStage]);
         if (cmp(candidate, dp[i]) > 0) {
           dp[i] = candidate;
           parent[i] = j;
@@ -89,7 +103,7 @@ function bestPath(
   }
 
   let bestIdx = -1;
-  let best: Weight = [0, 0];
+  let best: Weight = [0, 0, 0];
   for (let i = 0; i < n; i++) {
     if (bestIdx === -1 || cmp(dp[i], best) > 0) {
       best = dp[i];
@@ -117,7 +131,48 @@ function bestPath(
     };
   });
 
-  return { stops, total: bestIdx === -1 ? [0, 0] : dp[bestIdx] };
+  return { stops, total: bestIdx === -1 ? [0, 0, 0] : dp[bestIdx] };
+}
+
+/**
+ * Sets the crew backed that didn't make a given path — annotated with which
+ * chosen stop(s) actually blocked them (schedule/travel conflict), not just
+ * "scored lower." Ranked by hype, capped to the handful worth showing.
+ */
+function findCloseCalls(
+  stops: PathStop[],
+  scores: SetScore[],
+  ticketType: TicketType
+): CloseCall[] {
+  const stopIds = new Set(stops.map((s) => s.set.id));
+  const candidates = scores.filter(
+    (s) => s.backers > 0 && !s.set.flexible && !stopIds.has(s.set.id)
+  );
+
+  const closeCalls: CloseCall[] = [];
+  for (const candidate of candidates) {
+    const set = candidate.set;
+    let prev: PathStop | null = null;
+    let next: PathStop | null = null;
+    for (const stop of stops) {
+      if (stop.set.startMin <= set.startMin) prev = stop;
+      if (stop.set.startMin >= set.startMin && !next) next = stop;
+    }
+
+    const conflictsWith: SetSlot[] = [];
+    if (prev && (prev.set.endMin + walkMinutes(prev.set.stage, set.stage, ticketType) > set.startMin)) {
+      conflictsWith.push(prev.set);
+    }
+    if (next && next !== prev && (set.endMin + walkMinutes(set.stage, next.set.stage, ticketType) > next.set.startMin)) {
+      conflictsWith.push(next.set);
+    }
+
+    if (conflictsWith.length > 0) {
+      closeCalls.push({ score: candidate, conflictsWith });
+    }
+  }
+
+  return closeCalls.sort((a, b) => b.score.hype - a.score.hype).slice(0, 3);
 }
 
 export function buildPaths(
@@ -127,6 +182,7 @@ export function buildPaths(
 ): {
   paths: PathResult[];
   wildcards: SetScore[];
+  closeCalls: CloseCall[];
 } {
   const scores = scoreSets(day, allocations);
   const scoreOf = new Map(scores.map((s) => [s.set.id, s]));
@@ -172,5 +228,7 @@ export function buildPaths(
     .filter((s) => s.set.flexible)
     .sort((a, b) => b.hype - a.hype);
 
-  return { paths, wildcards };
+  const closeCalls = findCloseCalls(hype.stops, scores, ticketType);
+
+  return { paths, wildcards, closeCalls };
 }

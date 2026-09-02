@@ -204,6 +204,15 @@ export function BiscuitAllocator({
   }
 
   function lockIn() {
+    // Quadratic scoring means unspent biscuits are pure lost voting power —
+    // a nudge here (not a block) catches the "forgot to finish" case without
+    // punishing someone who genuinely only cares about a couple of sets.
+    if (spent > 0 && spent < BISCUIT_BUDGET * 0.7) {
+      const ok = window.confirm(
+        `You've only spent ${spent}/${BISCUIT_BUDGET} biscuits. Unspent biscuits don't help your picks win close calls — lock in anyway?`
+      );
+      if (!ok) return;
+    }
     // Nobody has to remember to tap Rebalance first — locking in over budget
     // just balances it for you automatically.
     const wasOver = spent > BISCUIT_BUDGET;
