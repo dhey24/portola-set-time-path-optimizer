@@ -55,55 +55,74 @@ export interface CloseCall {
   conflictsWith: SetSlot[];
 }
 
-// [primary, secondary, sameStageStreak] compared lexicographically. The
-// third slot never outranks real score — it only breaks EXACT ties between
-// two otherwise-equal paths, preferring the one that hops stages less.
-type Weight = [number, number, number];
+type Weight = [number, number]; // [primary, secondary] compared lexicographically
 
 function cmp(a: Weight, b: Weight): number {
-  if (a[0] !== b[0]) return a[0] - b[0];
-  if (a[1] !== b[1]) return a[1] - b[1];
-  return a[2] - b[2];
+  return a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1];
 }
 function add(a: Weight, b: Weight): Weight {
-  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  return [a[0] + b[0], a[1] + b[1]];
+}
+
+// Percentage/floor tolerance for a continuous, hype-like quantity — used
+// wherever a Weight component represents summed hype rather than a count.
+const HYPE_TIE_PCT = 0.08;
+const HYPE_TIE_MIN = 2;
+
+function hypeClose(a: number, b: number): boolean {
+  return Math.abs(a - b) <= Math.max(HYPE_TIE_MIN, b * HYPE_TIE_PCT);
 }
 
 /**
  * Weighted job scheduling with stage-dependent travel time between consecutive picks.
  * O(n^2) DP over sets sorted by start time — plenty fast for a ~30-set day.
+ *
+ * The DP's propagated value is always the true optimum for THIS objective
+ * (never nudged for stage continuity — that would let the "bonus" compound
+ * over many hops and silently drag the whole path below its real best
+ * score). Stage continuity only ever decides which predecessor to record
+ * when `closeEnough` says two or more already tie within a hair of that
+ * optimum — a real toss-up, not a manufactured one. That also means it can
+ * only ever pull in a zero-interest set when literally nothing else
+ * compatible beat it either — genuine dead time, not padding.
  */
 function bestPath(
   sets: SetSlot[],
   scoreOf: Map<string, SetScore>,
-  weightOf: (s: SetScore) => [number, number],
+  weightOf: (s: SetScore) => Weight,
+  closeEnough: (a: Weight, b: Weight) => boolean,
   ticketType: TicketType
 ): { stops: PathStop[]; total: Weight } {
   const nodes = [...sets].sort((a, b) => a.startMin - b.startMin);
   const n = nodes.length;
-  const dp: Weight[] = new Array(n).fill(null).map(() => [0, 0, 0] as Weight);
+  const dp: Weight[] = new Array(n).fill(null).map(() => [0, 0] as Weight);
   const parent: number[] = new Array(n).fill(-1);
 
   for (let i = 0; i < n; i++) {
-    const [primary, secondary] = weightOf(scoreOf.get(nodes[i].id)!);
-    const w: Weight = [primary, secondary, 0];
-    dp[i] = w;
-    parent[i] = -1;
+    const w = weightOf(scoreOf.get(nodes[i].id)!);
+
+    const candidates: { j: number; value: Weight }[] = [{ j: -1, value: w }];
     for (let j = 0; j < i; j++) {
       const travel = walkMinutes(nodes[j].stage, nodes[i].stage, ticketType);
       if (nodes[j].endMin + travel <= nodes[i].startMin) {
-        const sameStage = nodes[j].stage === nodes[i].stage ? 1 : 0;
-        const candidate = add(dp[j], [primary, secondary, sameStage]);
-        if (cmp(candidate, dp[i]) > 0) {
-          dp[i] = candidate;
-          parent[i] = j;
-        }
+        candidates.push({ j, value: add(dp[j], w) });
       }
     }
+
+    let best = candidates[0];
+    for (const c of candidates) if (cmp(c.value, best.value) > 0) best = c;
+
+    const sameStageTie = candidates.find(
+      (c) => c.j !== -1 && nodes[c.j].stage === nodes[i].stage && closeEnough(c.value, best.value)
+    );
+    const chosen = sameStageTie ?? best;
+
+    dp[i] = chosen.value;
+    parent[i] = chosen.j;
   }
 
   let bestIdx = -1;
-  let best: Weight = [0, 0, 0];
+  let best: Weight = [0, 0];
   for (let i = 0; i < n; i++) {
     if (bestIdx === -1 || cmp(dp[i], best) > 0) {
       best = dp[i];
@@ -131,7 +150,7 @@ function bestPath(
     };
   });
 
-  return { stops, total: bestIdx === -1 ? [0, 0, 0] : dp[bestIdx] };
+  return { stops, total: bestIdx === -1 ? [0, 0] : dp[bestIdx] };
 }
 
 /**
@@ -188,14 +207,31 @@ export function buildPaths(
   const scoreOf = new Map(scores.map((s) => [s.set.id, s]));
   const scheduled = scheduledSets(day);
 
-  const hype = bestPath(scheduled, scoreOf, (s) => [s.hype, 0], ticketType);
+  // Each objective defines its own "close enough for a stage-continuity
+  // tie-break" — a raw point/backer count needs a much stricter bar than a
+  // continuous hype total, since being off by even 1 distinct backed set is
+  // a real difference for "pack in as many as possible," not a toss-up.
+  const hype = bestPath(
+    scheduled,
+    scoreOf,
+    (s) => [s.hype, 0],
+    (a, b) => hypeClose(a[0], b[0]),
+    ticketType
+  );
   const completionist = bestPath(
     scheduled,
     scoreOf,
     (s) => [s.backers > 0 ? 1 : 0, s.hype],
+    (a, b) => a[0] === b[0] && hypeClose(a[1], b[1]),
     ticketType
   );
-  const consensus = bestPath(scheduled, scoreOf, (s) => [s.backers, s.hype], ticketType);
+  const consensus = bestPath(
+    scheduled,
+    scoreOf,
+    (s) => [s.backers, s.hype],
+    (a, b) => Math.abs(a[0] - b[0]) <= 1 && hypeClose(a[1], b[1]),
+    ticketType
+  );
 
   const paths: PathResult[] = [
     {
