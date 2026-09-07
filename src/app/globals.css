@@ -197,3 +197,20 @@ body {
 .sparkle-twinkle {
   animation: sparkle-twinkle 2.6s ease-in-out infinite;
 }
+
+@keyframes disco-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.disco-spin {
+  display: inline-block;
+  animation: disco-spin 900ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disco-spin {
+    animation: none;
+  }
+}

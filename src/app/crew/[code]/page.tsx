@@ -9,6 +9,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { ShareCrewLink } from "@/components/ShareCrewLink";
 import { MyPlanEditor } from "@/components/MyPlanEditor";
 import { PrefsFields } from "@/components/PrefsFields";
+import { SubmitButton } from "@/components/SubmitButton";
 
 /** Built from the actual incoming request, not an env var — so it's always
  * correct for wherever this happens to be running (localhost, a Vercel
@@ -51,12 +52,12 @@ export default async function CrewPage({
             className="w-full rounded-xl bg-background/60 border border-white/10 px-4 py-3 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <PrefsFields />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Joining…"
             className="w-full rounded-xl bg-accent text-background font-bold py-3"
           >
             Join {crew.name}
-          </button>
+          </SubmitButton>
         </form>
       </main>
     );

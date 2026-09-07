@@ -1,6 +1,7 @@
 import { createCrewAction, joinCrewAction } from "@/lib/actions";
 import { PrefsFields } from "@/components/PrefsFields";
 import { Sparkle } from "@/components/Sparkle";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default function Home() {
   return (
@@ -46,12 +47,12 @@ export default function Home() {
             className="w-full rounded-xl bg-background/60 border border-white/10 px-4 py-3 text-base placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <PrefsFields />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Creating…"
             className="w-full rounded-xl bg-accent text-background font-bold py-3 text-base hover:brightness-95 active:scale-[0.99] transition"
           >
             Create crew
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -73,12 +74,12 @@ export default function Home() {
             className="w-full rounded-xl bg-background/60 border border-white/10 px-4 py-3 text-base placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent-2"
           />
           <PrefsFields />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Joining…"
             className="w-full rounded-xl bg-accent-2 text-background font-bold py-3 text-base hover:brightness-95 active:scale-[0.99] transition"
           >
             Join crew
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </main>
