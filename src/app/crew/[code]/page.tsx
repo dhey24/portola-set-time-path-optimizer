@@ -4,12 +4,15 @@ import { notFound } from "next/navigation";
 import { getStore, BISCUIT_BUDGET } from "@/lib/store";
 import { getSessionMember } from "@/lib/session";
 import { joinCrewAction } from "@/lib/actions";
-import { DAY_LABEL, Day } from "@/lib/lineup";
+import { DAY_LABEL, Day, RECENT_LINEUP_CHANGES } from "@/lib/lineup";
 import { CopyButton } from "@/components/CopyButton";
 import { ShareCrewLink } from "@/components/ShareCrewLink";
 import { MyPlanEditor } from "@/components/MyPlanEditor";
 import { PrefsFields } from "@/components/PrefsFields";
 import { SubmitButton } from "@/components/SubmitButton";
+import { RemoveMemberButton } from "@/components/RemoveMemberButton";
+import { LineupChangeNotice } from "@/components/LineupChangeNotice";
+import { founderMemberId } from "@/lib/crew";
 
 /** Built from the actual incoming request, not an env var — so it's always
  * correct for wherever this happens to be running (localhost, a Vercel
@@ -63,9 +66,21 @@ export default async function CrewPage({
     );
   }
 
-  const [board, origin] = await Promise.all([store.getStatusBoard(crew.id), currentOrigin()]);
+  const [board, origin, members, satPicks, sunPicks] = await Promise.all([
+    store.getStatusBoard(crew.id),
+    currentOrigin(),
+    store.listMembers(crew.id),
+    store.getAllocations(member.id, "saturday"),
+    store.getAllocations(member.id, "sunday"),
+  ]);
   const mine = board.find((b) => b.memberId === member.id);
   const joinUrl = `${origin}/crew/${crew.code}`;
+  const founderId = founderMemberId(members);
+  const isFounder = member.id === founderId;
+  const picksByDay: Record<Day, Record<string, number>> = {
+    saturday: satPicks,
+    sunday: sunPicks,
+  };
 
   return (
     <main className="flex flex-1 flex-col gap-6 pt-4">
@@ -114,6 +129,10 @@ export default async function CrewPage({
             );
           }
 
+          const myChanges = RECENT_LINEUP_CHANGES.filter(
+            (c) => c.day === day && (picksByDay[day][c.id] ?? 0) > 0
+          );
+
           return (
             <div key={day} className="bg-card rounded-2xl p-5 space-y-3">
               <div className="flex items-center justify-between">
@@ -127,6 +146,9 @@ export default async function CrewPage({
                   ? `You locked in — ${spent}/${BISCUIT_BUDGET} biscuits spent.`
                   : `You've spent ${spent}/${BISCUIT_BUDGET} biscuits. Not locked yet.`}
               </p>
+              {myChanges.length > 0 && (
+                <LineupChangeNotice crewCode={crew.code} day={day} changes={myChanges} />
+              )}
               <div className="flex gap-2">
                 <Link
                   href={`/crew/${crew.code}/allocate/${day}`}
@@ -148,16 +170,29 @@ export default async function CrewPage({
 
       <section className="bg-card/60 rounded-2xl p-5 space-y-2">
         <h2 className="poster-heading text-sm text-muted">Who&rsquo;s in {crew.name}</h2>
+        {isFounder && (
+          <p className="text-xs text-muted">
+            You started this crew, so you can remove duplicate or stray profiles below.
+          </p>
+        )}
         <ul className="flex flex-wrap gap-2">
           {board.map((b) => (
             <li
               key={b.memberId}
               className="text-xs bg-white/10 rounded-full px-3 py-1 flex items-center gap-1"
             >
+              {b.memberId === founderId && <span title="Started this crew">👑</span>}
               {b.displayName}
               <span className="text-muted">({b.ticketType})</span>
               {b.attending.saturday && (b.locked.saturday ? "🪩" : "")}
               {b.attending.sunday && (b.locked.sunday ? "🌙" : "")}
+              {isFounder && b.memberId !== member.id && (
+                <RemoveMemberButton
+                  crewCode={crew.code}
+                  memberId={b.memberId}
+                  displayName={b.displayName}
+                />
+              )}
             </li>
           ))}
         </ul>

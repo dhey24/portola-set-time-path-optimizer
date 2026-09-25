@@ -68,3 +68,11 @@ export async function listOtherCrewSessions(excludeCode: string): Promise<OtherC
   const jar = await cookies();
   return resolveOtherCrewSessions(jar.getAll(), excludeCode, getStore());
 }
+
+/** Every crew this browser holds a valid session cookie for — surfaced on the
+ * homepage so returning visitors can jump back into a crew without needing
+ * the original link, and without re-joining under a new name by mistake. */
+export async function listAllCrewSessions(): Promise<OtherCrewSession[]> {
+  const jar = await cookies();
+  return resolveOtherCrewSessions(jar.getAll(), "", getStore());
+}

@@ -49,6 +49,8 @@ export interface Store {
   verifyMember(memberId: string, token: string): Promise<CrewMember | null>;
   listMembers(crewId: string): Promise<CrewMember[]>;
   updateMemberPrefs(memberId: string, prefs: Partial<MemberPrefs>): Promise<void>;
+  /** Removes a member and their allocations. Callers must enforce who's allowed to. */
+  removeMember(memberId: string): Promise<void>;
 
   getAllocations(memberId: string, day: Day): Promise<Record<string, number>>;
   /** Full overwrite of a member's picks for a day. Throws if total exceeds the budget. */

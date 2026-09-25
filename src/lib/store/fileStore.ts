@@ -139,6 +139,13 @@ export const fileStore: Store = {
     return db.members.filter((m) => m.crewId === crewId);
   },
 
+  async removeMember(memberId) {
+    await mutate((db) => {
+      db.members = db.members.filter((m) => m.id !== memberId);
+      db.allocations = db.allocations.filter((a) => a.memberId !== memberId);
+    });
+  },
+
   async getAllocations(memberId, day) {
     const db = await load();
     const alloc = db.allocations.find((a) => a.memberId === memberId && a.day === day);

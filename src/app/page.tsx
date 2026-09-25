@@ -1,9 +1,13 @@
+import Link from "next/link";
 import { createCrewAction, joinCrewAction } from "@/lib/actions";
 import { PrefsFields } from "@/components/PrefsFields";
 import { Sparkle } from "@/components/Sparkle";
 import { SubmitButton } from "@/components/SubmitButton";
+import { listAllCrewSessions } from "@/lib/session";
 
-export default function Home() {
+export default async function Home() {
+  const yourCrews = await listAllCrewSessions();
+
   return (
     <main className="flex flex-1 flex-col gap-8 pt-6">
       <header className="relative text-center space-y-3 px-2">
@@ -26,6 +30,35 @@ export default function Home() {
           brutal efficiency, just vibes with a schedule.
         </p>
       </header>
+
+      {yourCrews.length > 0 && (
+        <section className="bg-card rounded-2xl p-5 space-y-3 shadow-lg shadow-black/20">
+          <h2 className="poster-heading text-xl text-accent">
+            {yourCrews.length === 1 ? "Jump back in" : "Your crews"}
+          </h2>
+          <p className="text-sm text-muted">
+            Lost the link? This browser remembers you.
+          </p>
+          <ul className="space-y-2">
+            {yourCrews.map((c) => (
+              <li key={c.memberId}>
+                <Link
+                  href={`/crew/${c.crewCode}`}
+                  className="flex items-center justify-between rounded-xl bg-background/60 border border-white/10 px-4 py-3 hover:border-accent/50 transition"
+                >
+                  <span>
+                    <span className="font-semibold">{c.crewName}</span>
+                    <span className="text-muted text-sm"> &middot; as {c.displayName}</span>
+                  </span>
+                  <span className="text-accent font-mono text-xs tracking-widest">
+                    {c.crewCode}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="bg-card rounded-2xl p-5 space-y-3 shadow-lg shadow-black/20">
         <h2 className="poster-heading text-xl text-accent">Start a crew</h2>

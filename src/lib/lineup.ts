@@ -75,14 +75,14 @@ const saturday: SetSlot[] = [
   slot("saturday", "pier", "Tove Lo", "5:40", "6:30"),
   slot("saturday", "pier", "Robyn", "7:10", "8:10"),
   slot("saturday", "pier", "Dog Blood (Skrillex + Boys Noize)", "9:00", "10:15"),
-  // Crane Stage
-  slot("saturday", "crane", "Erika b2b SFCowboy", "1:30", "3:00"),
-  slot("saturday", "crane", "Tricky", "3:20", "4:10"),
-  slot("saturday", "crane", "Nimino", "4:25", "5:15"),
-  slot("saturday", "crane", "DJ Shadow", "5:30", "6:30", {
+  // Crane Stage — Skepta dropped off the bill; Erika/Tricky/Nimino/DJ Shadow
+  // shifted later to fill the gap (updated poster, 2026-09-25).
+  slot("saturday", "crane", "Erika b2b SFCowboy", "1:30", "3:10"),
+  slot("saturday", "crane", "Tricky", "3:30", "4:30"),
+  slot("saturday", "crane", "Nimino", "4:50", "5:50"),
+  slot("saturday", "crane", "DJ Shadow", "6:10", "7:10", {
     label: "Celebrates 30 Years of Endtroducing.....",
   }),
-  slot("saturday", "crane", "Skepta", "6:45", "7:35"),
   slot("saturday", "crane", "Fatboy Slim", "7:55", "9:25"),
   slot("saturday", "crane", "Soulwax", "9:55", "10:55"),
   // Warehouse
@@ -149,6 +149,29 @@ const sunday: SetSlot[] = [
 ];
 
 export const LINEUP: Record<Day, SetSlot[]> = { saturday, sunday };
+
+/** Sets whose time moved on a poster correction after people had already
+ * started allocating — surfaced as a heads-up so they can double check
+ * whether their plan still makes sense. Keyed by the set's own id (stable
+ * across the correction, since it's derived from the artist name), so this
+ * naturally stops applying to anyone who resaves that day. Add an entry
+ * here any time a future correction reschedules a set someone may have
+ * already picked; there's deliberately no entry for Skepta's removal — that
+ * was cleaned up directly in everyone's stored picks instead. */
+export interface LineupTimeChange {
+  id: string;
+  day: Day;
+  artist: string;
+  was: string;
+  now: string;
+}
+
+export const RECENT_LINEUP_CHANGES: LineupTimeChange[] = [
+  { id: "saturday-crane-erika-b2b-sfcowboy", day: "saturday", artist: "Erika b2b SFCowboy", was: "1:30–3:00 PM", now: "1:30–3:10 PM" },
+  { id: "saturday-crane-tricky", day: "saturday", artist: "Tricky", was: "3:20–4:10 PM", now: "3:30–4:30 PM" },
+  { id: "saturday-crane-nimino", day: "saturday", artist: "Nimino", was: "4:25–5:15 PM", now: "4:50–5:50 PM" },
+  { id: "saturday-crane-dj-shadow", day: "saturday", artist: "DJ Shadow", was: "5:30–6:30 PM", now: "6:10–7:10 PM" },
+];
 
 export const DAY_LABEL: Record<Day, string> = {
   saturday: "Saturday · Sep 26",

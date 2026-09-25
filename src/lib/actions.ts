@@ -6,6 +6,7 @@ import { Day } from "./lineup";
 import { getStore, BISCUIT_BUDGET } from "./store";
 import { MemberPrefs, TicketType } from "./store/types";
 import { getSessionMember, listOtherCrewSessions, setSessionCookie } from "./session";
+import { founderMemberId } from "./crew";
 
 function parsePrefs(formData: FormData): MemberPrefs {
   const ticketType = formData.get("ticketType") === "VIP" ? "VIP" : "GA";
@@ -52,6 +53,17 @@ export async function joinCrewAction(formData: FormData) {
   if (!crew) {
     throw new Error(`No crew found with code "${code.toUpperCase()}"`);
   }
+
+  // This browser already has a valid session for this crew — resume that
+  // identity instead of creating a second member from whatever name was
+  // just typed. Without this, someone who forgets they already joined (or
+  // just fat-fingers their name slightly differently) ends up with a
+  // duplicate profile instead of picking back up where they left off.
+  const existingSession = await getSessionMember(crew.code);
+  if (existingSession) {
+    redirect(`/crew/${crew.code}`);
+  }
+
   const member = await store.joinCrew(crew.id, displayName, prefs);
   await setSessionCookie(crew.code, member);
   redirect(`/crew/${crew.code}`);
@@ -79,6 +91,27 @@ export async function updateMemberPrefsAction(
   revalidatePath(`/crew/${crewCode}/allocate/sunday`);
   revalidatePath(`/crew/${crewCode}/results/saturday`);
   revalidatePath(`/crew/${crewCode}/results/sunday`);
+}
+
+/** Founder-only: removes a duplicate/stray member (e.g. someone who
+ * re-joined under a slightly different name and lost track of their
+ * original profile). Whoever joined the crew first is the founder — there's
+ * no separate role to grant, since this app has no accounts. */
+export async function removeMemberAction(crewCode: string, targetMemberId: string) {
+  const { store, crew, member } = await requireMember(crewCode);
+  const members = await store.listMembers(crew.id);
+  if (member.id !== founderMemberId(members)) {
+    throw new Error("Only the person who started this crew can remove members");
+  }
+  if (targetMemberId === member.id) {
+    throw new Error("You can't remove yourself");
+  }
+  const target = members.find((m) => m.id === targetMemberId);
+  if (!target) {
+    throw new Error("That member isn't in this crew");
+  }
+  await store.removeMember(targetMemberId);
+  revalidatePath(`/crew/${crewCode}`);
 }
 
 /** Autosaves a draft. Deliberately unconstrained by the budget — someone

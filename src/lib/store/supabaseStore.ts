@@ -144,6 +144,13 @@ export const supabaseStore: Store = {
     return (data ?? []).map(rowToMember);
   },
 
+  async removeMember(memberId) {
+    const db = client();
+    // Allocations cascade-delete via the FK in supabase/schema.sql.
+    const { error } = await db.from("crew_members").delete().eq("id", memberId);
+    if (error) throw new Error(error.message);
+  },
+
   async getAllocations(memberId, day) {
     const db = client();
     const { data, error } = await db
