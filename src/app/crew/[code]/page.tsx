@@ -81,6 +81,7 @@ export default async function CrewPage({
     saturday: satPicks,
     sunday: sunPicks,
   };
+  const membersById = new Map(members.map((m) => [m.id, m]));
 
   return (
     <main className="flex flex-1 flex-col gap-6 pt-4">
@@ -172,29 +173,37 @@ export default async function CrewPage({
         <h2 className="poster-heading text-sm text-muted">Who&rsquo;s in {crew.name}</h2>
         {isFounder && (
           <p className="text-xs text-muted">
-            You started this crew, so you can remove duplicate or stray profiles below.
+            You started this crew — you can copy someone a link back into their own
+            profile (handy if they lose their session) or remove a duplicate below.
           </p>
         )}
         <ul className="flex flex-wrap gap-2">
-          {board.map((b) => (
-            <li
-              key={b.memberId}
-              className="text-xs bg-white/10 rounded-full px-3 py-1 flex items-center gap-1"
-            >
-              {b.memberId === founderId && <span title="Started this crew">👑</span>}
-              {b.displayName}
-              <span className="text-muted">({b.ticketType})</span>
-              {b.attending.saturday && (b.locked.saturday ? "🪩" : "")}
-              {b.attending.sunday && (b.locked.sunday ? "🌙" : "")}
-              {isFounder && b.memberId !== member.id && (
-                <RemoveMemberButton
-                  crewCode={crew.code}
-                  memberId={b.memberId}
-                  displayName={b.displayName}
-                />
-              )}
-            </li>
-          ))}
+          {board.map((b) => {
+            const target = membersById.get(b.memberId);
+            const loginUrl = target ? `${origin}/crew/${crew.code}/login/${target.id}/${target.sessionToken}` : null;
+            return (
+              <li
+                key={b.memberId}
+                className="text-xs bg-white/10 rounded-full px-3 py-1 flex items-center gap-1"
+              >
+                {b.memberId === founderId && <span title="Started this crew">👑</span>}
+                {b.displayName}
+                <span className="text-muted">({b.ticketType})</span>
+                {b.attending.saturday && (b.locked.saturday ? "🪩" : "")}
+                {b.attending.sunday && (b.locked.sunday ? "🌙" : "")}
+                {isFounder && loginUrl && (
+                  <CopyButton value={loginUrl} label="🔗" />
+                )}
+                {isFounder && b.memberId !== member.id && (
+                  <RemoveMemberButton
+                    crewCode={crew.code}
+                    memberId={b.memberId}
+                    displayName={b.displayName}
+                  />
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
     </main>
